@@ -1,0 +1,361 @@
+---
+title: "Introduction"
+author: "Lucas Mendicino"
+date: "11/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+packageVersion("BiocVersion")[,1:2]
+```
+
+```{r}
+BiocManager::install("BSgenome")
+
+```
+
+```{r}
+library(BiocManager)
+library(BSgenome)
+
+```
+
+```{r}
+packageVersion("BSgenome")
+```
+
+```{r}
+showClass("BSgenome")
+
+```
+
+
+BSgenome has GenomeDescription as its parent class and MaskedBSgenome as its subclass
+
+
+
+The Yeast genome is a single cell microorganism. Yeast is used for fermentation and production of beer, bread, kefir, kombucha and other foods, as well as used for bioremediation. Its scientific name is Saccharomyces cerevisiae or s. cerevisiae. Yeast is a very well studied organism, due to its fast development, many experiments use it as model.
+
+```{r}
+# Load the yeast genome
+library(BSgenome.Scerevisiae.UCSC.sacCer3)
+```
+
+```{r}
+# Assign data to the yeastGenome object
+yeastGenome <- BSgenome.Scerevisiae.UCSC.sacCer3
+
+# Get the head of seqnames and tail of seqlengths for yeastGenome
+head(seqnames(yeastGenome))
+tail(seqlengths(yeastGenome))
+
+# Print chromosome M, alias chrM
+print(yeastGenome$chrM)
+
+# Count characters of the chrM sequence
+nchar(yeastGenome$chrM)
+
+# Get the first 30 bases of chrM
+getSeq(yeastGenome, names = "chrM", end = 30)
+```
+
+```{r}
+available.genomes()
+```
+
+
+Biostrings
+
+
+```{r}
+library(Biostrings)
+```
+
+transcription DNA to RNA
+```{r}
+dna_seq <- DNAString("ATGATCTCGTAA")
+rna_seq <- RNAString(dna_seq)
+rna_seq
+```
+translation RNA to amino acids
+
+```{r}
+aa_seq <- translate(rna_seq)
+aa_seq
+```
+
+shortcut translate DNa to amino acids
+
+```{r}
+translate(dna_seq)
+```
+ 
+Zika Virus genome to interact with the package biostrings. The Zika virus genome is very small, of about 10 thousand base pairs. A virus needs a host to live in. The Zika virus is common in tropical areas around the world and it spreads through mosquitoes or blood.
+
+
+
+```{r}
+zikaVirus <- readDNAStringSet("zikavirus.fasta")
+```
+
+```{r}
+str(zikaVirus)
+length(zikaVirus)
+width(zikaVirus)
+```
+
+```{r}
+alphabetFrequency(zikaVirus, baseOnly = TRUE)
+```
+
+
+Let's manipulate a short sequence
+```{r}
+# Unlist the set, select the first 21 letters, and assign to dna_seq
+dna_seq <- subseq(unlist(zikaVirus), end = 21)
+dna_seq
+
+# Transcribe dna_seq into an RNAString object and print it
+rna_seq <- RNAString(dna_seq) 
+rna_seq
+
+# Translate rna_seq into an AAString object and print it
+aa_seq <- translate(rna_seq)
+aa_seq
+
+
+# Transcribe and translate dna_seq into an AAString object and print it
+aa_seq <- translate(dna_seq)
+aa_seq
+
+```
+
+Let's create a stringSet of collate it
+
+```{r}
+zikv <- unlist(zikaVirus)
+length(zikv)
+```
+
+common sequence manipulations
+
+```{r}
+# Reverse the zikv sequence
+reverse(zikv)
+
+# Complement the zikv sequence
+complement(zikv)
+
+# Reverse complement the zikv sequence
+reverseComplement(zikv)
+
+# Translate the zikv sequence
+translate(zikv)
+```
+
+Our goal in analyzing sequence patterns is to discover their occurrence frequency, periodicity, and length.
+
+What can we find with patterns?
+Where does a gene start, where does a protein end, which regions make a gene expressed or silent, which regions are conserved between organisms, and what is the overall genetic variation, are common questions solved by sequence pattern matching.
+
+
+
+finding a very conserved sequence in the family of Flaviviruses, from which the Zika Virus is part of. First some facts: The Zika Virus has a positive strand genome. It can live in different host cells. For example, Humans, monkeys, and mosquitoes. The Flaviviruses family share a common structure, which means their sequences are very similar. The virus structure has only 11 proteins
+ 
+
+Search for a pattern
+```{r}
+# For Sets
+vmatchPattern(pattern = "ACATGGGCCTACCATGGGAG", 
+              subject = zikaVirus, max.mismatch = 1)
+# For single sequences
+matchPattern(pattern = "ACATGGGCCTACCATGGGAG", 
+              subject = zikv, max.mismatch = 1)
+```
+
+1 exact match for this pattern
+
+
+Palindromes
+```{r}
+# Find palindromes in zikv
+findPalindromes(zikv)
+```
+
+
+There are 83 palindromic regions in the 10,974 bases of the Zika Virus. 
+
+
+Finding a conserved region within six frames
+
+look for the NS5 protein sequence in the Zika virus sequence
+
+
+
+```{r}
+NS5 <- readAAStringSet("NS5_protein_seq")
+```
+
+```{r}
+NS5 <- unlist(NS5)
+```
+
+```{r}
+rnaframesZikaSet <-readAAStringSet('rnaframesZikaSet.fasta')
+rnaframesZikaSet
+```
+
+```{r}
+
+```
+
+```{r}
+# Print rnaframesZikaSet
+#rnaframesZikaSet
+
+# Translate rnaframesZikaSet
+AAzika6F <- (rnaframesZikaSet)
+AAzika6F
+
+# Count NS5 protein matches in AAzika6F, allowing 15 mismatches
+vcountPattern(pattern = NS5, subject = AAzika6F, max.mismatch = 15)
+```
+
+Second frame holds the pattern
+```{r}
+# Subset the frame that contains the match from AAzika6F
+selectedSet <- rnaframesZikaSet[2] 
+  
+# Convert selectedSet into a single sequence
+selectedSeq <- unlist(selectedSet)
+```
+
+
+Looking for a match
+
+```{r}
+# Use vmatchPattern() with the set
+vmatchPattern(pattern = NS5, subject = selectedSet, max.mismatch = 15)
+```
+
+```{r}
+# Use matchPattern() with the single sequence
+matchPattern(pattern = NS5, subject = selectedSeq, max.mismatch = 15)
+```
+
+
+
+IRanges
+
+```{r}
+library(IRanges)
+```
+
+examples of constructing IRanges
+```{r}
+
+# IRnum1: start - vector 1 through 5, end - 100 
+IRnum1 <- IRanges(start = 1:5, end = 100)
+
+# IRnum2: end - 100, width - 89 and 10
+IRnum2 <- IRanges(end = 100, width = c(89, 10))
+
+# IRlog1: start = Rle(c(F, T, T, T, F, T, T, T))
+IRlog1 <- IRanges(start = Rle(c(F, T, T, T, F, T, T, T)))
+
+# Print objects in a list
+print(list(IRnum1 = IRnum1, IRnum2 = IRnum2, IRlog1 = IRlog1))
+```
+
+
+
+ABCD1 is located at the end of chromosome X long arm. It encodes a protein relevant for the well functioning of brain and lung cells in mammals. Chromosome X is about 156 million base pairs long and our gene is located in a small interval, around the 153 million base pairs mark.
+
+
+```{r}
+library(GenomicRanges)
+```
+
+You have just learned about the gene ABCD1. It encodes the protein in charge of the normal transport of fats that keep brain and lung cells functioning normally. When these groups of fats are not broken down, they build up in the body and become toxic. This affects the adrenal glands (small glands on top of each kidney) and the insulation (myelin) that surrounds neurons, causing hormonal problems and deteriorating movement, vision, and hearing. More than 650 mutations in the ABCD1 gene have been found to cause X-linked adrenoleukodystrophy, a rare genetic disease.
+
+Since you are going to be studying this gene in the coming exercises, it is important to remember where it is located. If you are unsure, check the gene ABCD1 and its location using the Ensembl genome browser.
+
+
+```{r}
+# Load human reference genome hg38
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+
+# Assign hg38 to hg, then print it
+hg <- TxDb.Hsapiens.UCSC.hg38.knownGene
+hg
+```
+
+
+```{r}
+# Extract all the genes in chromosome X as hg_chrXg, then print it
+hg_chrXg <- genes(hg, filter = list(tx_chrom = c("chrX")))
+hg_chrXg
+```
+
+
+```{r}
+# Extract all positive stranded genes in chromosome X, assign to hg_chrXgp, then sort it
+hg_chrXgp <- genes(hg, filter = list(tx_chrom = c("chrX"), tx_strand = "+"))
+sort(hg_chrXgp)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
